@@ -1,0 +1,10 @@
+{
+  "version": "0.1.0",
+  "tasks": {
+    "dev": "deno run --allow-read --allow-write --allow-ffi --allow-env --allow-net --unstable-ffi --allow-run --watch main.ts",
+    "build": "deno compile --allow-read --allow-write --allow-ffi --allow-env --allow-net --allow-run --unstable-ffi --include ui/ --output dist/hotas-tool.exe main.ts"
+  },
+  "imports": {
+    "webview": "https://deno.land/x/webview@0.7.6/mod.ts"
+  }
+}
