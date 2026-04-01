@@ -7,9 +7,9 @@
   --bg-hover:    #21253a;
   --bg-input:    #12151e;
   --border:      #2d3148;
-  --border-focus:#5c6bc0;
-  --accent:      #5c6bc0;
-  --accent-hover:#7986cb;
+  --border-focus:#1e88e5;
+  --accent:      #1e88e5;
+  --accent-hover:#42a5f5;
   --text:        #e0e4f0;
   --text-dim:    #7b82a0;
   --text-muted:  #4a5070;
@@ -480,7 +480,7 @@ body {
 }
 .radio-label:hover  { border-color: var(--accent); }
 .radio-label input  { accent-color: var(--accent); cursor: pointer; }
-.radio-label:has(input:checked) { border-color: var(--accent); background: rgba(92,107,192,0.1); }
+.radio-label:has(input:checked) { border-color: var(--accent); background: rgba(30,136,229,0.1); }
 
 .config-field { margin-bottom: 14px; }
 .config-field label:not(.checkbox-label) {
