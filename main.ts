@@ -296,6 +296,21 @@ async function main() {
     }
   });
 
+  webview.bind("ipc_getTemplateSvg", (...args: unknown[]): string => {
+    const [deviceId] = args as [string];
+    const templatePaths: Record<string, string> = {
+      "vkb-gladiator-nxt-right": "ui/templates/VKB Sim/VKB-Sim Gladiator NXT R.svg",
+      "vkb-gladiator-nxt-left":  "ui/templates/VKB Sim/VKB-Sim Gladiator NXT L.svg",
+    };
+    const relPath = templatePaths[deviceId];
+    if (!relPath) return "";
+    try {
+      return Deno.readTextFileSync(relPath);
+    } catch {
+      return "";
+    }
+  });
+
   // ── Build and load UI ──────────────────────────────────────────────────────
   const scriptDir = dirname(fromFileUrl(import.meta.url));
   const uiPath = join(scriptDir, "ui", "index.html");

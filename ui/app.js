@@ -30,6 +30,7 @@ const ipc = {
   loadFile:              (path)                => ipc_loadFile(path),
   saveFile:              (file, binds)         => ipc_saveFile(file, binds),
   saveFileAs:            (file, binds, path)   => ipc_saveFileAs(file, binds, path),
+  getTemplateSvg:        (deviceId)            => ipc_getTemplateSvg(deviceId),
   debugLog:              (...args)             => ipc_debugLog(...args),
 };
 
@@ -51,6 +52,29 @@ const state = {
   // Binding editor state
   editorControl: null,
   editorStick: null,  // 'right' | 'left'
+};
+
+// ── Template label → SC input suffix mapping ──────────────────────────────────
+// Maps diagrams.net SVG label text to the SC input suffix used in "js{N}_{suffix}"
+const TEMPLATE_LABEL_MAP = {
+  // Buttons 1–29
+  'BUTTON_1': 'button1',   'BUTTON_2': 'button2',   'BUTTON_3': 'button3',
+  'BUTTON_4': 'button4',   'BUTTON_5': 'button5',   'BUTTON_6': 'button6',
+  'BUTTON_7': 'button7',   'BUTTON_8': 'button8',   'BUTTON_9': 'button9',
+  'BUTTON_10': 'button10', 'BUTTON_11': 'button11', 'BUTTON_12': 'button12',
+  'BUTTON_13': 'button13', 'BUTTON_14': 'button14', 'BUTTON_15': 'button15',
+  'BUTTON_16': 'button16', 'BUTTON_17': 'button17', 'BUTTON_18': 'button18',
+  'BUTTON_19': 'button19', 'BUTTON_20': 'button20', 'BUTTON_21': 'button21',
+  'BUTTON_22': 'button22', 'BUTTON_23': 'button23', 'BUTTON_24': 'button24',
+  'BUTTON_25': 'button25', 'BUTTON_26': 'button26', 'BUTTON_27': 'button27',
+  'BUTTON_28': 'button28', 'BUTTON_29': 'button29',
+  // POV hat directions (8-way)
+  'POV_1_U':  'hat1_up',        'POV_1_D':  'hat1_down',
+  'POV_1_L':  'hat1_left',      'POV_1_R':  'hat1_right',
+  'POV_1_UR': 'hat1_upright',   'POV_1_DR': 'hat1_downright',
+  'POV_1_DL': 'hat1_downleft',  'POV_1_LL': 'hat1_upleft',
+  // Axes
+  'AXIS_X / AXIS_Y': 'x',  'AXIS_X': 'x',  'AXIS_Y': 'y',  'AXIS_RZ': 'rz',
 };
 
 // ── Initialise ────────────────────────────────────────────────────────────────
@@ -458,27 +482,32 @@ function getActiveControls(deviceId, omniThrottle) {
 }
 
 // ── SVG Diagram ───────────────────────────────────────────────────────────────
-function renderDiagram() {
-  renderStickDiagram('right');
+async function renderDiagram() {
+  await renderStickDiagram('right');
   if (state.config?.mode === 'dual') {
-    renderStickDiagram('left');
+    await renderStickDiagram('left');
   }
 }
 
-function renderStickDiagram(side) {
+async function renderStickDiagram(side) {
   const stickCfg = side === 'right' ? state.config?.rightStick : state.config?.leftStick;
   if (!stickCfg) return;
-
   const dc = state.deviceControls[stickCfg.deviceId];
   if (!dc) return;
-
   const jsInstance = stickCfg.jsInstance;
   const controls = getActiveControls(stickCfg.deviceId, stickCfg.omniThrottle);
   const container = document.getElementById(`svg-${side}`);
 
-  container.innerHTML = buildStickSvg(dc, controls, jsInstance, side);
+  // Try template SVG first — if available, use it
+  const svgContent = await ipc.getTemplateSvg(stickCfg.deviceId);
+  if (svgContent) {
+    renderTemplateDiagram(side, svgContent, stickCfg.deviceId, jsInstance);
+    return;
+  }
 
-  // Attach click handlers
+  // Fall back to programmatic SVG
+  container.classList.remove('template-mode');
+  container.innerHTML = buildStickSvg(dc, controls, jsInstance, side);
   container.querySelectorAll('.ctrl-group[data-control-id]').forEach(el => {
     el.addEventListener('click', () => {
       const controlId = el.dataset.controlId;
@@ -488,6 +517,77 @@ function renderStickDiagram(side) {
   });
 }
 
+function renderTemplateDiagram(side, svgContent, deviceId, jsInstance) {
+  const container = document.getElementById(`svg-${side}`);
+  container.innerHTML = svgContent;
+  container.classList.add('template-mode');
+
+  const svg = container.querySelector('svg');
+  if (!svg) return;
+
+  // Make SVG responsive
+  svg.removeAttribute('width');
+  svg.removeAttribute('height');
+  svg.style.width = '100%';
+  svg.style.height = 'auto';
+
+  const deviceCtrls = state.deviceControls[deviceId];
+
+  // Each button is a <g><switch><foreignObject>...</foreignObject><text x y>LABEL</text></switch></g>
+  svg.querySelectorAll('switch > text').forEach(textEl => {
+    const label = textEl.textContent.trim();
+    const scInputSuffix = TEMPLATE_LABEL_MAP[label];
+    if (!scInputSuffix) return;
+
+    // Look up the SC binding for this input
+    const fullInput = `js${jsInstance}_${scInputSuffix}`;
+    const binding = state.bindings.find(b => b.input === fullInput);
+    const actionName = binding ? shortActionName(binding.action) : null;
+
+    const switchEl = textEl.parentElement;    // <switch>
+    const groupEl  = switchEl?.parentElement; // <g>
+
+    // Modify foreignObject <font> content to include binding text below label
+    const foreignObj = switchEl?.querySelector('foreignObject');
+    if (foreignObj) {
+      const fontEl = foreignObj.querySelector('font');
+      if (fontEl) {
+        const bindHtml = actionName
+          ? `<span style="display:block;color:#42a5f5;font-size:8px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:76px;margin-top:1px">${esc(actionName)}</span>`
+          : `<span style="display:block;color:#555;font-size:8px;margin-top:1px">—</span>`;
+        fontEl.innerHTML = `<span style="font-size:9px">${esc(label)}</span>${bindHtml}`;
+      }
+    }
+
+    // Make the <g> clickable
+    if (groupEl) {
+      groupEl.style.cursor = 'pointer';
+      groupEl.addEventListener('click', () => _openTemplateBindingEditor(label, scInputSuffix, deviceId, jsInstance, side));
+    }
+
+    // Activate and style the sibling <rect> (invisible hit target from diagrams.net)
+    const siblingRect = groupEl?.nextElementSibling;
+    if (siblingRect && siblingRect.tagName.toLowerCase() === 'rect') {
+      siblingRect.setAttribute('pointer-events', 'all');
+      siblingRect.style.cursor = 'pointer';
+      if (binding) {
+        siblingRect.setAttribute('fill', 'rgba(30,136,229,0.2)');
+        siblingRect.setAttribute('stroke', '#1e88e5');
+        siblingRect.setAttribute('stroke-width', '1');
+      } else {
+        siblingRect.setAttribute('fill', 'rgba(0,0,0,0)');
+      }
+      siblingRect.addEventListener('click', () => _openTemplateBindingEditor(label, scInputSuffix, deviceId, jsInstance, side));
+    }
+  });
+}
+
+function _openTemplateBindingEditor(label, scInputSuffix, deviceId, jsInstance, side) {
+  const deviceCtrls = state.deviceControls[deviceId];
+  const ctrl = (deviceCtrls?.controls || []).find(c => c.scInput === scInputSuffix)
+    || { id: scInputSuffix, name: label, scInput: scInputSuffix, type: 'button', svgX: 0, svgY: 0 };
+  openBindingEditor(ctrl, jsInstance, side);
+}
 function buildStickSvg(dc, controls, jsInstance, side) {
   const [,, vbW, vbH] = dc.svgViewBox.split(' ').map(Number);
 
