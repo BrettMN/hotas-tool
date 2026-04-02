@@ -235,13 +235,15 @@ async function main() {
 
   webview.bind("ipc_browseForSave", (...args: unknown[]) => {
     const tmpFile = `${TEMP_DIR}\\hotas-dialog-${crypto.randomUUID()}.txt`;
+    // args[0] = profile name (default filename), args[1] = initial directory (mappings path)
+    const initialDir = (args[1] as string | undefined) || getDefaultScInstallDir();
     spawnDialog(
       buildSaveFileScript(
         "Save Star Citizen Actionmap",
         "XML Files (*.xml)|*.xml|All Files (*.*)|*.*",
         `${args[0] as string}.xml`,
         tmpFile,
-        getDefaultScInstallDir(),
+        initialDir,
       ),
       tmpFile,
     );

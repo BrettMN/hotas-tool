@@ -23,7 +23,7 @@ const ipc = {
   getDefaultScInstallDir:()                    => ipc_getDefaultScInstallDir(),
   browseForFolder:       async (desc, dir)     => awaitDialog(await ipc_browseForFolder(desc, dir)),
   browseForFile:         async (dir)           => awaitDialog(await ipc_browseForFile(dir)),
-  browseForSave:         async (name)          => awaitDialog(await ipc_browseForSave(name)),
+  browseForSave:         async (name, dir)     => awaitDialog(await ipc_browseForSave(name, dir)),
   pollDialogResult:      (tmp)                 => ipc_pollDialogResult(tmp),
   scanScChannels:        (dir)                 => ipc_scanScChannels(dir),
   listProfiles:          (dir)                 => ipc_listScProfiles(dir),
@@ -441,7 +441,8 @@ async function saveFile() {
 
 async function saveFileAs() {
   if (!state.loadedFile) return;
-  const newPath = await ipc.browseForSave(state.loadedFile.profileName);
+  const mappingsDir = state.activeChannel?.mappingsPath ?? null;
+  const newPath = await ipc.browseForSave(state.loadedFile.profileName, mappingsDir);
   if (!newPath) return;
   const result = await ipc.saveFileAs(state.loadedFile, state.bindings, newPath);
   if (!result.success) {
