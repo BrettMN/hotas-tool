@@ -598,6 +598,7 @@ function renderTemplateDiagram(side, svgContent, deviceId, jsInstance) {
         bindText.addEventListener('mouseenter', (e) => _showSvgTooltip(svg, e, tx, ty, actionName));
         bindText.addEventListener('mouseleave', () => _hideSvgTooltip(svg));
       }
+      bindText.addEventListener('click', () => _openTemplateBindingEditor(label, scInputSuffix, deviceId, jsInstance, side));
 
       svg.appendChild(bindText);
     }
