@@ -577,6 +577,10 @@ function renderTemplateDiagram(side, svgContent, deviceId, jsInstance) {
       if (foreignObj) foreignObj.setAttribute('display', 'none');
 
       // Add action name overlay centred in the same callout box
+      const maxLen = 14;
+      const isTruncated = actionName.length > maxLen;
+      const displayText = isTruncated ? actionName.slice(0, maxLen) + '…' : actionName;
+
       const bindText = document.createElementNS('http://www.w3.org/2000/svg', 'text');
       bindText.setAttribute('x', String(tx));
       bindText.setAttribute('y', String(ty));
@@ -585,8 +589,15 @@ function renderTemplateDiagram(side, svgContent, deviceId, jsInstance) {
       bindText.setAttribute('font-size', '9px');
       bindText.setAttribute('font-weight', 'bold');
       bindText.setAttribute('text-anchor', 'middle');
-      const maxLen = 14;
-      bindText.textContent = actionName.length > maxLen ? actionName.slice(0, maxLen) + '…' : actionName;
+      bindText.setAttribute('pointer-events', 'all');
+      bindText.style.cursor = 'pointer';
+      bindText.textContent = displayText;
+
+      if (isTruncated) {
+        bindText.addEventListener('mouseenter', (e) => _showSvgTooltip(svg, e, tx, ty, actionName));
+        bindText.addEventListener('mouseleave', () => _hideSvgTooltip(svg));
+      }
+
       svg.appendChild(bindText);
     }
 
@@ -618,6 +629,53 @@ function _openTemplateBindingEditor(label, scInputSuffix, deviceId, jsInstance, 
   const ctrl = (deviceCtrls?.controls || []).find(c => c.scInput === scInputSuffix)
     || { id: scInputSuffix, name: label, scInput: scInputSuffix, type: 'button', svgX: 0, svgY: 0 };
   openBindingEditor(ctrl, jsInstance, side);
+}
+
+function _showSvgTooltip(svg, event, tx, ty, fullText) {
+  _hideSvgTooltip(svg);
+  const ns = 'http://www.w3.org/2000/svg';
+  const pad = 5;
+  const charW = 6.5; // approx px per char at 10px Helvetica
+  const boxW = fullText.length * charW + pad * 2;
+  const boxH = 18;
+
+  // Position above the label, clamped inside the viewBox
+  const vb = svg.getAttribute('viewBox')?.split(' ').map(Number) || [0, 0, 1159, 807];
+  let bx = tx - boxW / 2;
+  let by = ty - boxH - 4;
+  bx = Math.max(vb[0] + 2, Math.min(bx, vb[0] + vb[2] - boxW - 2));
+  by = Math.max(vb[1] + 2, by);
+
+  const g = document.createElementNS(ns, 'g');
+  g.setAttribute('id', '_svg-tooltip');
+  g.setAttribute('pointer-events', 'none');
+
+  const rect = document.createElementNS(ns, 'rect');
+  rect.setAttribute('x', String(bx));
+  rect.setAttribute('y', String(by));
+  rect.setAttribute('width', String(boxW));
+  rect.setAttribute('height', String(boxH));
+  rect.setAttribute('rx', '3');
+  rect.setAttribute('fill', '#1a2236');
+  rect.setAttribute('stroke', '#1e88e5');
+  rect.setAttribute('stroke-width', '1');
+
+  const text = document.createElementNS(ns, 'text');
+  text.setAttribute('x', String(bx + boxW / 2));
+  text.setAttribute('y', String(by + boxH / 2 + 3.5));
+  text.setAttribute('fill', '#e3f2fd');
+  text.setAttribute('font-family', 'Helvetica');
+  text.setAttribute('font-size', '10px');
+  text.setAttribute('text-anchor', 'middle');
+  text.textContent = fullText;
+
+  g.appendChild(rect);
+  g.appendChild(text);
+  svg.appendChild(g);
+}
+
+function _hideSvgTooltip(svg) {
+  svg.querySelector('#_svg-tooltip')?.remove();
 }
 function buildStickSvg(dc, controls, jsInstance, side) {
   const [,, vbW, vbH] = dc.svgViewBox.split(' ').map(Number);
