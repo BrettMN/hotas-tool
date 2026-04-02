@@ -94,7 +94,7 @@ async function init() {
     applyConfigToUI(state.config);
 
     await refreshDeviceControls();
-    renderDiagram();
+    await renderDiagram();
     renderList();
 
     // Auto-scan if we have a saved install directory
@@ -195,11 +195,11 @@ function populateCategoryFilters() {
 }
 
 // ── Tab management ────────────────────────────────────────────────────────────
-function switchTab(tab) {
+async function switchTab(tab) {
   state.activeTab = tab;
   document.querySelectorAll('.tab-btn').forEach(b => b.classList.toggle('active', b.dataset.tab === tab));
   document.querySelectorAll('.tab-content').forEach(s => s.classList.toggle('active', s.id === `tab-${tab}`));
-  if (tab === 'diagram') renderDiagram();
+  if (tab === 'diagram') await renderDiagram();
   if (tab === 'list')    renderList();
 }
 
@@ -267,7 +267,7 @@ async function saveDeviceConfig() {
   await refreshDeviceControls();
 
   applyConfigToUI(newConfig);
-  renderDiagram();
+  await renderDiagram();
   renderList();
   showToast('Configuration saved', 'success');
 }
@@ -422,7 +422,7 @@ async function loadFilePath(path) {
   document.getElementById('btn-save').disabled = false;
   document.getElementById('btn-save-as').disabled = false;
 
-  renderDiagram();
+  await renderDiagram();
   renderList();
   showToast(`Loaded: ${path.split('\\').pop()}`, 'success');
 }
@@ -531,7 +531,10 @@ async function renderStickDiagram(side) {
 
 function renderTemplateDiagram(side, svgContent, deviceId, jsInstance) {
   const container = document.getElementById(`svg-${side}`);
-  container.innerHTML = svgContent;
+
+  // Strip XML preamble / DOCTYPE — browser needs just the <svg> tag
+  const cleaned = svgContent.replace(/^[\s\S]*?(<svg\s)/, '$1');
+  container.innerHTML = cleaned;
   container.classList.add('template-mode');
 
   const svg = container.querySelector('svg');
@@ -545,8 +548,12 @@ function renderTemplateDiagram(side, svgContent, deviceId, jsInstance) {
 
   const deviceCtrls = state.deviceControls[deviceId];
 
-  // Each button is a <g><switch><foreignObject>...</foreignObject><text x y>LABEL</text></switch></g>
-  svg.querySelectorAll('switch > text').forEach(textEl => {
+  // Each button: <rect .../><g><switch><foreignObject>…</foreignObject><text x y>LABEL</text></switch></g>
+  // The <text> inside <switch> is the fallback label — use it to find the button name & position.
+  // NOTE: In HTML-parsed SVG, <switch> may become HTMLUnknownElement.
+  //       Use a broader selector and filter for <text> elements whose parent is a <switch>.
+  const allTexts = svg.querySelectorAll('text');
+  allTexts.forEach(textEl => {
     const label = textEl.textContent.trim();
     const scInputSuffix = TEMPLATE_LABEL_MAP[label];
     if (!scInputSuffix) return;
@@ -556,11 +563,15 @@ function renderTemplateDiagram(side, svgContent, deviceId, jsInstance) {
     const binding = state.bindings.find(b => b.input === fullInput);
     const actionName = binding ? shortActionName(binding.action) : null;
 
-    const switchEl = textEl.parentElement;    // <switch>
+    // Get position from the <text> fallback element
+    const tx = parseFloat(textEl.getAttribute('x') || '0');
+    const ty = parseFloat(textEl.getAttribute('y') || '0');
+
+    const switchEl = textEl.parentElement;    // <switch> or parent
     const groupEl  = switchEl?.parentElement; // <g>
 
     // Modify foreignObject <font> content to include binding text below label
-    const foreignObj = switchEl?.querySelector('foreignObject');
+    const foreignObj = switchEl?.querySelector('foreignObject, foreignobject');
     if (foreignObj) {
       const fontEl = foreignObj.querySelector('font');
       if (fontEl) {
@@ -569,6 +580,20 @@ function renderTemplateDiagram(side, svgContent, deviceId, jsInstance) {
           : `<span style="display:block;color:#555;font-size:8px;margin-top:1px">—</span>`;
         fontEl.innerHTML = `<span style="font-size:9px">${esc(label)}</span>${bindHtml}`;
       }
+    }
+
+    // Also add an overlay <text> for the binding below the label as a fallback
+    if (actionName) {
+      const bindText = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+      bindText.setAttribute('x', String(tx));
+      bindText.setAttribute('y', String(ty + 13));
+      bindText.setAttribute('fill', '#42a5f5');
+      bindText.setAttribute('font-family', 'Helvetica');
+      bindText.setAttribute('font-size', '9px');
+      bindText.setAttribute('text-anchor', 'middle');
+      const maxLen = 14;
+      bindText.textContent = actionName.length > maxLen ? actionName.slice(0, maxLen) + '…' : actionName;
+      svg.appendChild(bindText);
     }
 
     // Make the <g> clickable
@@ -924,7 +949,7 @@ function renderModalActionsList() {
   }
 }
 
-function selectAction(actionName) {
+async function selectAction(actionName) {
   const stickCfg = state.editorStick === 'right' ? state.config?.rightStick : state.config?.leftStick;
   if (!stickCfg || !state.editorControl) return;
 
@@ -950,12 +975,12 @@ function selectAction(actionName) {
   document.getElementById('btn-save-as').disabled = false;
 
   closeModal();
-  renderDiagram();
+  await renderDiagram();
   renderList();
   showToast(`Bound ${state.editorControl.name} → ${actionName}`, 'success');
 }
 
-function clearBinding() {
+async function clearBinding() {
   const stickCfg = state.editorStick === 'right' ? state.config?.rightStick : state.config?.leftStick;
   if (!stickCfg || !state.editorControl) return;
 
@@ -971,7 +996,7 @@ function clearBinding() {
   }
 
   closeModal();
-  renderDiagram();
+  await renderDiagram();
   renderList();
 }
 

@@ -25,8 +25,8 @@ export function parseActionmap(xmlStr: string, filePath: string): ScActionmapFil
   const profileMatch = xmlStr.match(/profileName\s*=\s*"([^"]*)"/);
   const profileName = profileMatch?.[1] ?? "unknown";
 
-  // Extract all ActionMap blocks
-  const actionMapRegex = /<ActionMap\s+name="([^"]+)"[^>]*>([\s\S]*?)<\/ActionMap>/g;
+  // Extract all ActionMap blocks (case-insensitive — SC exports use lowercase tags)
+  const actionMapRegex = /<actionmap\s+name="([^"]+)"[^>]*>([\s\S]*?)<\/actionmap>/gi;
   let mapMatch: RegExpExecArray | null;
 
   while ((mapMatch = actionMapRegex.exec(xmlStr)) !== null) {
@@ -34,7 +34,7 @@ export function parseActionmap(xmlStr: string, filePath: string): ScActionmapFil
     const mapContent = mapMatch[2];
 
     // Extract Action elements within this map
-    const actionRegex = /<Action\s+name="([^"]+)"[^>]*>([\s\S]*?)<\/Action>/g;
+    const actionRegex = /<action\s+name="([^"]+)"[^>]*>([\s\S]*?)<\/action>/gi;
     let actionMatch: RegExpExecArray | null;
 
     while ((actionMatch = actionRegex.exec(mapContent)) !== null) {
@@ -42,7 +42,7 @@ export function parseActionmap(xmlStr: string, filePath: string): ScActionmapFil
       const actionContent = actionMatch[2];
 
       // Extract rebind input (last wins — SC uses the last rebind)
-      const rebindRegex = /<rebind\s+[^>]*input="([^"]+)"[^>]*\/?>/g;
+      const rebindRegex = /<rebind\s+[^>]*input="([^"]+)"[^>]*/gi;
       let rebindMatch: RegExpExecArray | null;
       let lastInput: string | null = null;
 
