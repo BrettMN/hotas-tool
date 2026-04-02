@@ -320,6 +320,30 @@ async function main() {
   const scriptDir = dirname(fromFileUrl(import.meta.url));
   const uiPath = join(scriptDir, "ui", "index.html");
   webview.navigate(toFileUrl(uiPath).href);
+
+  // ── Frontend hot reload (watches ui/ — templates excluded, too large) ───────
+  // Restarts happen automatically via --watch for main.ts / src/ changes.
+  // For ui/*.html / *.css / *.js changes we just reload the WebView page.
+  const uiDir = join(scriptDir, "ui");
+  (async () => {
+    try {
+      const watcher = Deno.watchFs(uiDir, { recursive: false });
+      let reloadTimer: number | undefined;
+      for await (const event of watcher) {
+        if (event.kind !== "modify" && event.kind !== "create") continue;
+        const relevant = event.paths.some(p => /\.(html|css|js)$/.test(p));
+        if (!relevant) continue;
+        // Debounce — wait 80ms so rapid saves don't fire multiple reloads
+        clearTimeout(reloadTimer);
+        reloadTimer = setTimeout(() => {
+          webview.eval("location.reload()");
+        }, 80);
+      }
+    } catch {
+      // Watcher unavailable (e.g. compiled build) — silently skip
+    }
+  })();
+
   webview.run();
 }
 

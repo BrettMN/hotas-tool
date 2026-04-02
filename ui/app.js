@@ -570,26 +570,20 @@ function renderTemplateDiagram(side, svgContent, deviceId, jsInstance) {
     const switchEl = textEl.parentElement;    // <switch> or parent
     const groupEl  = switchEl?.parentElement; // <g>
 
-    // Modify foreignObject <font> content to include binding text below label
-    const foreignObj = switchEl?.querySelector('foreignObject, foreignobject');
-    if (foreignObj) {
-      const fontEl = foreignObj.querySelector('font');
-      if (fontEl) {
-        const bindHtml = actionName
-          ? `<span style="display:block;color:#42a5f5;font-size:8px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:76px;margin-top:1px">${esc(actionName)}</span>`
-          : `<span style="display:block;color:#555;font-size:8px;margin-top:1px">—</span>`;
-        fontEl.innerHTML = `<span style="font-size:9px">${esc(label)}</span>${bindHtml}`;
-      }
-    }
-
-    // Also add an overlay <text> for the binding below the label as a fallback
     if (actionName) {
+      // Hide the original button-name label (foreignObject + fallback text)
+      textEl.setAttribute('display', 'none');
+      const foreignObj = switchEl?.querySelector('foreignObject, foreignobject');
+      if (foreignObj) foreignObj.setAttribute('display', 'none');
+
+      // Add action name overlay centred in the same callout box
       const bindText = document.createElementNS('http://www.w3.org/2000/svg', 'text');
       bindText.setAttribute('x', String(tx));
-      bindText.setAttribute('y', String(ty + 13));
+      bindText.setAttribute('y', String(ty));
       bindText.setAttribute('fill', '#42a5f5');
       bindText.setAttribute('font-family', 'Helvetica');
       bindText.setAttribute('font-size', '9px');
+      bindText.setAttribute('font-weight', 'bold');
       bindText.setAttribute('text-anchor', 'middle');
       const maxLen = 14;
       bindText.textContent = actionName.length > maxLen ? actionName.slice(0, maxLen) + '…' : actionName;
