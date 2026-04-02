@@ -1,236 +1,306 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
-<head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>HOTAS Tool</title>
-  <link rel="stylesheet" href="styles.css" />
-</head>
-<body>
-  <div id="app">
-    <!-- Header -->
-    <header class="app-header">
-      <div class="header-left">
-        <span class="app-logo">🕹️</span>
-        <h1 class="app-title">HOTAS Tool</h1>
-        <span class="game-badge">Star Citizen</span>
-      </div>
-      <div class="header-center">
-        <nav class="tab-nav">
-          <button class="tab-btn active" data-tab="diagram">Diagram</button>
-          <button class="tab-btn" data-tab="list">List View</button>
-          <button class="tab-btn" data-tab="config">Device Config</button>
-        </nav>
-      </div>
-      <div class="header-right">
-        <button id="btn-open" class="btn btn-secondary" title="Open SC actionmap file">📂 Open</button>
-        <button id="btn-save" class="btn btn-primary" title="Save changes" disabled>💾 Save</button>
-        <button id="btn-save-as" class="btn btn-secondary" title="Save as new file" disabled>Save As</button>
-      </div>
-    </header>
-
-    <!-- SC Install Bar (shown after install dir is selected) -->
-    <div id="sc-install-bar" class="sc-install-bar hidden">
-      <span class="sc-install-label">SC:</span>
-      <span id="sc-install-path" class="sc-install-path" title=""></span>
-      <div id="channel-tabs" class="channel-tabs"></div>
-      <div class="sc-bar-spacer"></div>
-      <select id="profile-select" class="profile-select"></select>
-      <button id="btn-load-profile" class="btn btn-primary btn-sm">Load Profile</button>
-      <button id="btn-change-install" class="btn btn-secondary btn-sm">Change…</button>
-    </div>
-
-    <!-- File info bar -->
-    <div id="file-bar" class="file-bar hidden">
-      <span class="file-icon">📄</span>
-      <span id="file-name" class="file-name">No file loaded</span>
-      <span id="file-profile" class="file-profile"></span>
-      <span class="file-spacer"></span>
-      <span id="binding-count" class="binding-count"></span>
-    </div>
-
-    <!-- Toast notifications -->
-    <div id="toast-container" class="toast-container"></div>
-
-    <!-- Main content area -->
-    <main class="app-main">
-
-      <!-- ── Diagram Tab ─────────────────────────────────────────────────── -->
-      <section id="tab-diagram" class="tab-content active">
-        <div class="diagram-layout">
-          <!-- Left stick (dual mode) -->
-          <div id="panel-left-stick" class="stick-panel hidden">
-            <h3 class="stick-label">Left Stick <span class="instance-badge" id="left-instance-badge">JS2</span></h3>
-            <div id="svg-left" class="svg-container"></div>
-          </div>
-
-          <!-- Right stick (always shown) -->
-          <div id="panel-right-stick" class="stick-panel">
-            <h3 class="stick-label">Right Stick <span class="instance-badge" id="right-instance-badge">JS1</span></h3>
-            <div id="svg-right" class="svg-container"></div>
-          </div>
-
-          <!-- Legend -->
-          <div class="diagram-legend">
-            <h4>Legend</h4>
-            <div class="legend-item"><span class="legend-dot bound"></span> Bound</div>
-            <div class="legend-item"><span class="legend-dot unbound"></span> Unbound</div>
-            <div class="legend-item"><span class="legend-dot axis"></span> Axis</div>
-            <div class="legend-hint">Click any control to edit its binding</div>
-          </div>
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>HOTAS Tool</title>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <div id="app">
+      <!-- Header -->
+      <header class="app-header">
+        <div class="header-left">
+          <span class="app-logo">🕹️</span>
+          <h1 class="app-title">HOTAS Tool</h1>
+          <span class="game-badge">Star Citizen</span>
         </div>
-      </section>
-
-      <!-- ── List View Tab ──────────────────────────────────────────────── -->
-      <section id="tab-list" class="tab-content">
-        <div class="list-toolbar">
-          <input type="search" id="list-search" class="search-input" placeholder="Search actions or controls…" />
-          <select id="list-filter-stick" class="filter-select">
-            <option value="all">All Sticks</option>
-            <option value="right">Right Stick</option>
-            <option value="left">Left Stick</option>
-          </select>
-          <select id="list-filter-category" class="filter-select">
-            <option value="all">All Categories</option>
-          </select>
-          <label class="checkbox-label">
-            <input type="checkbox" id="list-show-unbound" />
-            Show unbound only
-          </label>
+        <div class="header-center">
+          <nav class="tab-nav">
+            <button class="tab-btn active" data-tab="diagram">Diagram</button>
+            <button class="tab-btn" data-tab="list">List View</button>
+            <button class="tab-btn" data-tab="config">Device Config</button>
+          </nav>
         </div>
-        <div class="table-wrapper">
-          <table id="bindings-table" class="bindings-table">
-            <thead>
-              <tr>
-                <th class="col-control">Control</th>
-                <th class="col-input">SC Input</th>
-                <th class="col-action">Action</th>
-                <th class="col-category">Category</th>
-                <th class="col-actions">Edit</th>
-              </tr>
-            </thead>
-            <tbody id="bindings-tbody"></tbody>
-          </table>
+        <div class="header-right">
+          <button
+            id="btn-open"
+            class="btn btn-secondary"
+            title="Open SC actionmap file"
+          >
+            📂 Open
+          </button>
+          <button
+            id="btn-save"
+            class="btn btn-primary"
+            title="Save changes"
+            disabled
+          >
+            💾 Save
+          </button>
+          <button
+            id="btn-save-as"
+            class="btn btn-secondary"
+            title="Save as new file"
+            disabled
+          >
+            Save As
+          </button>
         </div>
-      </section>
+      </header>
 
-      <!-- ── Device Config Tab ─────────────────────────────────────────── -->
-      <section id="tab-config" class="tab-content">
-        <div class="config-container">
-          <h2>Device Configuration</h2>
-          <p class="config-hint">Configure your stick setup. Changes take effect immediately in the diagram and list views.</p>
+      <!-- SC Install Bar (shown after install dir is selected) -->
+      <div id="sc-install-bar" class="sc-install-bar hidden">
+        <span class="sc-install-label">SC:</span>
+        <span id="sc-install-path" class="sc-install-path" title=""></span>
+        <div id="channel-tabs" class="channel-tabs"></div>
+        <div class="sc-bar-spacer"></div>
+        <select id="profile-select" class="profile-select"></select>
+        <button id="btn-load-profile" class="btn btn-primary btn-sm">
+          Load Profile
+        </button>
+        <button id="btn-change-install" class="btn btn-secondary btn-sm">
+          Change…
+        </button>
+      </div>
 
-          <div class="config-card">
-            <h3>Setup Mode</h3>
-            <div class="radio-group">
-              <label class="radio-label">
-                <input type="radio" name="mode" value="single" />
-                <span>Single Stick (Right)</span>
-              </label>
-              <label class="radio-label">
-                <input type="radio" name="mode" value="dual" />
-                <span>Dual Stick / HOSAS</span>
-              </label>
+      <!-- File info bar -->
+      <div id="file-bar" class="file-bar hidden">
+        <span class="file-icon">📄</span>
+        <span id="file-name" class="file-name">No file loaded</span>
+        <span id="file-profile" class="file-profile"></span>
+        <span class="file-spacer"></span>
+        <span id="binding-count" class="binding-count"></span>
+      </div>
+
+      <!-- Toast notifications -->
+      <div id="toast-container" class="toast-container"></div>
+
+      <!-- Main content area -->
+      <main class="app-main">
+        <!-- ── Diagram Tab ─────────────────────────────────────────────────── -->
+        <section id="tab-diagram" class="tab-content active">
+          <div class="diagram-layout">
+            <!-- Left stick (dual mode) -->
+            <div id="panel-left-stick" class="stick-panel hidden">
+              <h3 class="stick-label">
+                Left Stick
+                <span class="instance-badge" id="left-instance-badge">JS2</span>
+              </h3>
+              <div id="svg-left" class="svg-container"></div>
+            </div>
+
+            <!-- Right stick (always shown) -->
+            <div id="panel-right-stick" class="stick-panel">
+              <h3 class="stick-label">
+                Right Stick
+                <span class="instance-badge" id="right-instance-badge"
+                  >JS1</span
+                >
+              </h3>
+              <div id="svg-right" class="svg-container"></div>
+            </div>
+
+            <!-- Legend (collapsible) -->
+            <div class="diagram-legend" id="diagram-legend">
+              <button
+                class="legend-toggle"
+                id="legend-toggle"
+                title="Hide legend"
+              >
+                ◀
+              </button>
+              <div class="legend-body" id="legend-body">
+                <h4>Legend</h4>
+                <div class="legend-item">
+                  <span class="legend-dot bound"></span> Bound
+                </div>
+                <div class="legend-item">
+                  <span class="legend-dot unbound"></span> Unbound
+                </div>
+                <div class="legend-item">
+                  <span class="legend-dot axis"></span> Axis
+                </div>
+                <div class="legend-hint">
+                  Click any control to edit its binding
+                </div>
+              </div>
             </div>
           </div>
+        </section>
 
-          <div class="config-grid">
-            <!-- Right stick -->
+        <!-- ── List View Tab ──────────────────────────────────────────────── -->
+        <section id="tab-list" class="tab-content">
+          <div class="list-toolbar">
+            <input
+              type="search"
+              id="list-search"
+              class="search-input"
+              placeholder="Search actions or controls…"
+            />
+            <select id="list-filter-stick" class="filter-select">
+              <option value="all">All Sticks</option>
+              <option value="right">Right Stick</option>
+              <option value="left">Left Stick</option>
+            </select>
+            <select id="list-filter-category" class="filter-select">
+              <option value="all">All Categories</option>
+            </select>
+            <label class="checkbox-label">
+              <input type="checkbox" id="list-show-unbound" />
+              Show unbound only
+            </label>
+          </div>
+          <div class="table-wrapper">
+            <table id="bindings-table" class="bindings-table">
+              <thead>
+                <tr>
+                  <th class="col-control">Control</th>
+                  <th class="col-input">SC Input</th>
+                  <th class="col-action">Action</th>
+                  <th class="col-category">Category</th>
+                  <th class="col-actions">Edit</th>
+                </tr>
+              </thead>
+              <tbody id="bindings-tbody"></tbody>
+            </table>
+          </div>
+        </section>
+
+        <!-- ── Device Config Tab ─────────────────────────────────────────── -->
+        <section id="tab-config" class="tab-content">
+          <div class="config-container">
+            <h2>Device Configuration</h2>
+            <p class="config-hint">
+              Configure your stick setup. Changes take effect immediately in the
+              diagram and list views.
+            </p>
+
             <div class="config-card">
-              <h3>Right Stick</h3>
-              <div class="config-field">
-                <label>Device</label>
-                <select id="right-device-select" class="config-select">
-                  <!-- populated by JS -->
-                </select>
-              </div>
-              <div class="config-field">
-                <label>Joystick Instance</label>
-                <select id="right-instance-select" class="config-select">
-                  <option value="1">JS1 (joystick 1)</option>
-                  <option value="2">JS2 (joystick 2)</option>
-                  <option value="3">JS3 (joystick 3)</option>
-                  <option value="4">JS4 (joystick 4)</option>
-                </select>
-              </div>
-              <div class="config-field">
-                <label class="checkbox-label">
-                  <input type="checkbox" id="right-omni" />
-                  Omni Throttle Adapter attached
+              <h3>Setup Mode</h3>
+              <div class="radio-group">
+                <label class="radio-label">
+                  <input type="radio" name="mode" value="single" />
+                  <span>Single Stick (Right)</span>
+                </label>
+                <label class="radio-label">
+                  <input type="radio" name="mode" value="dual" />
+                  <span>Dual Stick / HOSAS</span>
                 </label>
               </div>
             </div>
 
-            <!-- Left stick (shown in dual mode) -->
-            <div id="left-config-card" class="config-card hidden">
-              <h3>Left Stick</h3>
-              <div class="config-field">
-                <label>Device</label>
-                <select id="left-device-select" class="config-select">
-                  <!-- populated by JS -->
-                </select>
+            <div class="config-grid">
+              <!-- Right stick -->
+              <div class="config-card">
+                <h3>Right Stick</h3>
+                <div class="config-field">
+                  <label>Device</label>
+                  <select id="right-device-select" class="config-select">
+                    <!-- populated by JS -->
+                  </select>
+                </div>
+                <div class="config-field">
+                  <label>Joystick Instance</label>
+                  <select id="right-instance-select" class="config-select">
+                    <option value="1">JS1 (joystick 1)</option>
+                    <option value="2">JS2 (joystick 2)</option>
+                    <option value="3">JS3 (joystick 3)</option>
+                    <option value="4">JS4 (joystick 4)</option>
+                  </select>
+                </div>
+                <div class="config-field">
+                  <label class="checkbox-label">
+                    <input type="checkbox" id="right-omni" />
+                    Omni Throttle Adapter attached
+                  </label>
+                </div>
               </div>
-              <div class="config-field">
-                <label>Joystick Instance</label>
-                <select id="left-instance-select" class="config-select">
-                  <option value="1">JS1 (joystick 1)</option>
-                  <option value="2">JS2 (joystick 2)</option>
-                  <option value="3">JS3 (joystick 3)</option>
-                  <option value="4">JS4 (joystick 4)</option>
-                </select>
-              </div>
-              <div class="config-field">
-                <label class="checkbox-label">
-                  <input type="checkbox" id="left-omni" />
-                  Omni Throttle Adapter attached
-                </label>
+
+              <!-- Left stick (shown in dual mode) -->
+              <div id="left-config-card" class="config-card hidden">
+                <h3>Left Stick</h3>
+                <div class="config-field">
+                  <label>Device</label>
+                  <select id="left-device-select" class="config-select">
+                    <!-- populated by JS -->
+                  </select>
+                </div>
+                <div class="config-field">
+                  <label>Joystick Instance</label>
+                  <select id="left-instance-select" class="config-select">
+                    <option value="1">JS1 (joystick 1)</option>
+                    <option value="2">JS2 (joystick 2)</option>
+                    <option value="3">JS3 (joystick 3)</option>
+                    <option value="4">JS4 (joystick 4)</option>
+                  </select>
+                </div>
+                <div class="config-field">
+                  <label class="checkbox-label">
+                    <input type="checkbox" id="left-omni" />
+                    Omni Throttle Adapter attached
+                  </label>
+                </div>
               </div>
             </div>
+
+            <div class="config-actions">
+              <button id="btn-save-config" class="btn btn-primary">
+                Save Configuration
+              </button>
+            </div>
+          </div>
+        </section>
+      </main>
+    </div>
+
+    <!-- ── Binding Editor Modal ─────────────────────────────────────────────── -->
+    <div id="binding-modal" class="modal-overlay hidden">
+      <div class="modal">
+        <div class="modal-header">
+          <h2 id="modal-title">Edit Binding</h2>
+          <button class="modal-close" id="modal-close">✕</button>
+        </div>
+        <div class="modal-body">
+          <div class="modal-control-info">
+            <span class="modal-control-name" id="modal-control-name"></span>
+            <span class="modal-input-code" id="modal-input-code"></span>
+          </div>
+          <div class="modal-current">
+            <span class="label">Current binding:</span>
+            <span id="modal-current-binding" class="current-binding-text"
+              >None</span
+            >
           </div>
 
-          <div class="config-actions">
-            <button id="btn-save-config" class="btn btn-primary">Save Configuration</button>
+          <div class="modal-search-area">
+            <input
+              type="search"
+              id="modal-search"
+              class="search-input"
+              placeholder="Search SC actions…"
+              autofocus
+            />
+            <select id="modal-category-filter" class="filter-select">
+              <option value="all">All Categories</option>
+            </select>
+          </div>
+
+          <div id="modal-actions-list" class="actions-list">
+            <!-- populated by JS -->
           </div>
         </div>
-      </section>
-    </main>
-  </div>
-
-  <!-- ── Binding Editor Modal ─────────────────────────────────────────────── -->
-  <div id="binding-modal" class="modal-overlay hidden">
-    <div class="modal">
-      <div class="modal-header">
-        <h2 id="modal-title">Edit Binding</h2>
-        <button class="modal-close" id="modal-close">✕</button>
-      </div>
-      <div class="modal-body">
-        <div class="modal-control-info">
-          <span class="modal-control-name" id="modal-control-name"></span>
-          <span class="modal-input-code" id="modal-input-code"></span>
+        <div class="modal-footer">
+          <button id="btn-clear-binding" class="btn btn-danger">
+            Clear Binding
+          </button>
+          <button id="btn-cancel-binding" class="btn btn-secondary">
+            Cancel
+          </button>
         </div>
-        <div class="modal-current">
-          <span class="label">Current binding:</span>
-          <span id="modal-current-binding" class="current-binding-text">None</span>
-        </div>
-
-        <div class="modal-search-area">
-          <input type="search" id="modal-search" class="search-input" placeholder="Search SC actions…" autofocus />
-          <select id="modal-category-filter" class="filter-select">
-            <option value="all">All Categories</option>
-          </select>
-        </div>
-
-        <div id="modal-actions-list" class="actions-list">
-          <!-- populated by JS -->
-        </div>
-      </div>
-      <div class="modal-footer">
-        <button id="btn-clear-binding" class="btn btn-danger">Clear Binding</button>
-        <button id="btn-cancel-binding" class="btn btn-secondary">Cancel</button>
       </div>
     </div>
-  </div>
 
-  <script src="app.js"></script>
-</body>
+    <script src="app.js"></script>
+  </body>
 </html>

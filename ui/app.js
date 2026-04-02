@@ -127,6 +127,15 @@ function setupEventListeners() {
   document.getElementById('btn-load-profile').addEventListener('click', loadSelectedProfile);
   document.getElementById('btn-change-install').addEventListener('click', openFile);
 
+  // Legend toggle
+  document.getElementById('legend-toggle').addEventListener('click', () => {
+    const legend = document.getElementById('diagram-legend');
+    const btn    = document.getElementById('legend-toggle');
+    const collapsed = legend.classList.toggle('collapsed');
+    btn.textContent = collapsed ? '▶' : '◀';
+    btn.title       = collapsed ? 'Show legend' : 'Hide legend';
+  });
+
   // Config mode radios
   document.querySelectorAll('input[name="mode"]').forEach(r => {
     r.addEventListener('change', () => {
@@ -197,15 +206,18 @@ function switchTab(tab) {
 // ── Device config ─────────────────────────────────────────────────────────────
 function populateDeviceSelects() {
   ['right-device-select', 'left-device-select'].forEach((selId, idx) => {
+    const preferredHand = idx === 0 ? 'right' : 'left';
     const sel = document.getElementById(selId);
     sel.innerHTML = '';
     state.devices.forEach(d => {
-      // For right select, prefer right-hand devices; for left, prefer left-hand
       const opt = document.createElement('option');
       opt.value = d.id;
       opt.textContent = d.name;
       sel.appendChild(opt);
     });
+    // Pre-select the device matching the preferred hand for this slot
+    const preferred = state.devices.find(d => d.hand === preferredHand);
+    if (preferred) sel.value = preferred.id;
   });
 }
 

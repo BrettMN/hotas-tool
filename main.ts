@@ -44,6 +44,11 @@ const DEFAULT_CONFIG: DeviceConfig = {
     jsInstance: 1,
     omniThrottle: false,
   },
+  leftStick: {
+    deviceId: "vkb-gladiator-nxt-left",
+    jsInstance: 2,
+    omniThrottle: false,
+  },
 };
 
 function saveConfigSync(config: DeviceConfig): void {
