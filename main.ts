@@ -33,6 +33,40 @@ import {
 } from "./src/sc/parser.ts";
 import { saveActionmapFileSync } from "./src/sc/writer.ts";
 
+// ── Window icon (Win32 FFI) ────────────────────────────────────────────────
+// webview_deno has no icon API, so we call User32 directly.
+// WM_SETICON = 0x0080, ICON_BIG = 1, ICON_SMALL = 0
+// LR_LOADFROMFILE = 0x10, IMAGE_ICON = 1
+function setWindowIcon(webview: InstanceType<typeof Webview>, icoPath: string): void {
+  if (Deno.build.os !== "windows") return;
+  try {
+    const user32 = Deno.dlopen("user32.dll", {
+      LoadImageW: {
+        parameters: ["pointer", "buffer", "u32", "i32", "i32", "u32"],
+        result: "pointer",
+      },
+      SendMessageW: {
+        parameters: ["pointer", "u32", "usize", "pointer"],
+        result: "pointer",
+      },
+    });
+    const pathBuf = new TextEncoder().encode(icoPath + "\0");
+    const wPath = new Uint16Array(icoPath.length + 1);
+    for (let i = 0; i < icoPath.length; i++) wPath[i] = icoPath.charCodeAt(i);
+    const hicon = user32.symbols.LoadImageW(
+      null, new Uint8Array(wPath.buffer), 1 /* IMAGE_ICON */, 0, 0, 0x10 /* LR_LOADFROMFILE */,
+    );
+    if (hicon) {
+      const hwnd = webview.unsafeWindowHandle;
+      user32.symbols.SendMessageW(hwnd, 0x0080 /* WM_SETICON */, 0n /* ICON_SMALL */, hicon);
+      user32.symbols.SendMessageW(hwnd, 0x0080 /* WM_SETICON */, 1n /* ICON_BIG */,  hicon);
+    }
+    user32.close();
+  } catch {
+    // Non-critical — silently skip if FFI fails
+  }
+}
+
 // ── Persistent config file ────────────────────────────────────────────────────
 const CONFIG_DIR = `${Deno.env.get("APPDATA") ?? "."}\\hotas-tool`;
 const CONFIG_FILE = `${CONFIG_DIR}\\config.json`;
@@ -322,6 +356,10 @@ async function main() {
   const scriptDir = dirname(fromFileUrl(import.meta.url));
   const uiPath = join(scriptDir, "ui", "index.html");
   webview.navigate(toFileUrl(uiPath).href);
+
+  // ── Set window icon via Win32 API ─────────────────────────────────────────
+  const iconPath = join(scriptDir, "ui", "icon.ico");
+  setWindowIcon(webview, iconPath);
 
   // ── Frontend hot reload (watches ui/ — templates excluded, too large) ───────
   // Restarts happen automatically via --watch for main.ts / src/ changes.
